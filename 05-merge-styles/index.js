@@ -2,17 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 const styleFolder = path.join(__dirname, 'styles');
+const pathOutputFile = path.join(__dirname, './project-dist', 'bundle.css');
+
+function createStyleFile(pathFile){
+  fs.writeFile(
+    pathFile,
+    '',
+    (error) => {
+      if (error) console.error(error.message);
+    }
+  );
+}
 
 
-
-
-fs.writeFile(
-  path.join(__dirname, './project-dist', 'bundle.css'),
-  '',
-  (error) => {
-    if (error) console.error(error.message);
-  }
-);
 
 
 function reading(file){
@@ -29,28 +31,31 @@ function reading(file){
   });
 }
 
-
-fs.readdir(styleFolder, (error, files) => {
-  if (error) console.error(error.message);
-
-  files.forEach((file) => {
-    fs.stat(path.join(styleFolder, file), (err, stats) => {
-      if (err) console.error(error.message);
-
-      let filePath = path.parse(path.join(styleFolder, file));
-      
-      if(stats.isFile() && filePath.ext === '.css') {
-        reading(file);
-      }
+function mergeFiles() {
+  fs.readdir(styleFolder, (error, files) => {
+    if (error) console.error(error.message);
+  
+    files.forEach((file) => {
+      fs.stat(path.join(styleFolder, file), (err, stats) => {
+        if (err) console.error(error.message);
+  
+        let filePath = path.parse(path.join(styleFolder, file));
+        
+        if(stats.isFile() && filePath.ext === '.css') {
+          reading(file);
+        }
+      });
     });
   });
-
-  
-});
+}
 
 
 
+async function startMerge() {
+  await createStyleFile(pathOutputFile);
+  mergeFiles();
+}
 
-
+startMerge();
 
 

@@ -4,45 +4,67 @@ const path = require('path');
 const styleFolder = path.join(__dirname, 'styles');
 const pathDirParent = path.join(__dirname, 'assets');
 const pathDirCopy = path.join(__dirname, './project-dist', 'assets');
+const pathOutputFile = path.join(__dirname, './project-dist', 'style.css');
 
 let html = '';
 let regular = /{{(\w*)/g;
-let templateNames;
+
+
+fs.promises.rm(path.join(__dirname, 'project-dist'), { recursive: true, force: true })
+  .then(
+    () => {
+      return fs.promises.mkdir(path.join(__dirname, 'project-dist'), { recursive: true });
+    },
+
+    (error) => {
+      if (error) console.error(error.message);
+    }
+  )
+  .then(
+    () => {
+      return fs.promises.mkdir(pathDirCopy, { recursive: true });
+    },
+
+    (error) => {
+      if (error) console.error(error.message);
+    }
+  )
+  .then(
+    () => {
+      createStyleFile(pathOutputFile);
+      getTemplateNames();
+    },
+
+    (error) => {
+      if (error) console.error(error.message);
+    }
+
+  )
+  .then(
+    () => {
+      copyFileRecursive(pathDirParent, pathDirCopy);
+      mergeFiles();
+    },
+
+    (error) => {
+      if (error) console.error(error.message);
+    }
+
+  );
 
 
 
 
 
-
-
-
-fs.promises.mkdir(path.join(__dirname, 'project-dist'), { recursive: true });
-
-
-
-fs.writeFile(
-  path.join(__dirname, './project-dist', 'style.css'),
-  '',
-  (error) => {
-    if (error) console.error(error.message);
-  }
-);
-
-
-function replaceTemplate() {
-  templateNames.forEach((name) => {
-    let nameHtml = name + '.html';
-    let stringReplace = '{{' + name + '}}';
-    fs.readFile(path.join(__dirname, './components', nameHtml), 'utf8', (err, data) => {
-      if (err) console.error(err.message);
-  
-      html = html.replace(stringReplace, data);
-      createIndexHtml();
-    });
-  });
-  
+function createStyleFile(pathFile){
+  fs.writeFile(
+    pathFile,
+    '',
+    (error) => {
+      if (error) console.error(error.message);
+    }
+  );
 }
-
 
 function createIndexHtml() {
   fs.writeFile(path.join(__dirname, './project-dist', 'index.html'), html, (err) => {
@@ -51,23 +73,39 @@ function createIndexHtml() {
 }
 
 
+function getTemplateNames(){
+  fs.readFile(
+    path.join(__dirname, 'template.html'), (error, data) => {
+      if (error) console.error(error.message);
+  
+      html = html + data;
+      
+      let arr = html.match(regular);
+      arr = arr.map(item => item.slice(2));
 
-fs.readFile(
-  path.join(__dirname, 'template.html'), (error, data) => {
-    if (error) console.error(error.message);
+      replaceTemplate(arr);
+    });
 
-    html = html + data;
-    
-    templateNames = html.match(regular);
-    templateNames = templateNames.map(item => item.slice(2));
 
-    replaceTemplate();
+}
+
+
+function replaceTemplate(arrTemplate) {
+  console.log(arrTemplate);
+
+  arrTemplate.forEach((name) => {
+    let nameHtml = name + '.html';
+    let stringReplace = '{{' + name + '}}';
+    fs.readFile(path.join(__dirname, './components', nameHtml), 'utf8', (err, data) => {
+      if (err) console.error(err.message);
+  
+      html = html.replace(stringReplace, data);
+
+      createIndexHtml();
+    });
   });
-
-
-
-
-
+  
+}
 
 
 
@@ -85,91 +123,25 @@ function reading(file){
   });
 }
 
-
-fs.readdir(styleFolder, (error, files) => {
-  if (error) console.error(error.message);
-
-  files.forEach((file) => {
-    fs.stat(path.join(styleFolder, file), (err, stats) => {
-      if (err) console.error(error.message);
-
-      let filePath = path.parse(path.join(styleFolder, file));
-      
-      if(stats.isFile() && filePath.ext === '.css') {
-        reading(file);
-      }
-    });
-  });
-
+function mergeFiles() {
+  fs.readdir(styleFolder, (error, files) => {
+    if (error) console.error(error.message);
   
-});
-
-
-
-fs.writeFile(
-  path.join(__dirname, './project-dist', 'style.css'),
-  '',
-  (error) => {
-    if (error) console.error(error.message);
-  }
-);
-
-
-function readingFile(file){
-  fs.readFile(path.join(styleFolder, file), 'utf-8', (err, data) => {
-    if (err) console.error(err.message);
-
-    fs.appendFile(
-      path.join(__dirname, './project-dist', 'style.css'),
-      data,
-      (error) => {
-        if (error) console.error(error.message);
-      }
-    );
-  });
-}
-
-
-fs.readdir(styleFolder, (error, files) => {
-  if (error) console.error(error.message);
-
-  files.forEach((file) => {
-    fs.stat(path.join(styleFolder, file), (err, stats) => {
-      if (err) console.error(error.message);
-
-      let filePath = path.parse(path.join(styleFolder, file));
-      
-      if(stats.isFile() && filePath.ext === '.css') {
-        readingFile(file);
-      }
+    files.forEach((file) => {
+      fs.stat(path.join(styleFolder, file), (err, stats) => {
+        if (err) console.error(error.message);
+  
+        let filePath = path.parse(path.join(styleFolder, file));
+        
+        if(stats.isFile() && filePath.ext === '.css') {
+          reading(file);
+        }
+      });
     });
   });
-});
-
-
-function createFolder(pathDir) {
-  fs.promises.mkdir(pathDir, { recursive: true }, (error) => {
-    if (error) console.error(error.message);
-  });
-}
-
-async function deleteCopyFolder(folder) {
-  await fs.promises.rmdir(folder, { recursive: true });
-  await fs.promises.mkdir(folder, { recursive: true });
-
-  copyFileRecursive (pathDirParent, pathDirCopy);
 }
 
 
-fs.access(pathDirCopy, (error)=> {
-  if (error) {
-    createFolder(pathDirCopy);
-    copyFileRecursive (pathDirParent, pathDirCopy);
-  } else {
-    deleteCopyFolder(pathDirCopy);
-  }
-});
- 
 
 function copyFileRecursive (pathDir, copyDir) {
 
@@ -188,8 +160,16 @@ function copyFileRecursive (pathDir, copyDir) {
             if (error) console.error(error.message);
           });
         } else {
-          createFolder(path.join(copyDir, filePath.name));
-          copyFileRecursive (path.join(pathDir, filePath.name), path.join(copyDir, filePath.name));
+          fs.promises.mkdir(path.join(pathDirCopy, filePath.name), { recursive: true})
+            .then (
+              ()  => {
+                return copyFileRecursive (path.join(pathDir, filePath.name), path.join(copyDir, filePath.name));
+              },
+
+              (error) => {
+                if (error) console.error(error.message);
+              }
+            );
         }
 
       });
@@ -199,4 +179,3 @@ function copyFileRecursive (pathDir, copyDir) {
   });
   
 }
-

@@ -5,31 +5,26 @@ const pathDirParent = path.join(__dirname, 'files');
 const pathDirCopy = path.join(__dirname, 'files-copy');
 
 
-function createFolder(pathDir) {
-  fs.promises.mkdir(pathDir, { recursive: true }, (error) => {
-    if (error) console.error(error.message);
-  });
-}
+fs.promises.rm(pathDirCopy, { recursive: true, force: true })
+  .then(
+    () => {
+      return fs.promises.mkdir(pathDirCopy, { recursive: true});
+    },
 
+    (error) => {
+      if (error) console.error(error.message);
+    }
+  )
+  .then(
+    () => {
+      return copyFileRecursive(pathDirParent, pathDirCopy);
+    },
 
+    (error) => {
+      if (error) console.error(error.message);
+    }
 
-async function deleteCopyFolder(folder) {
-  await fs.promises.rmdir(folder, { recursive: true });
-  await fs.promises.mkdir(folder, { recursive: true });
-
-  copyFileRecursive (pathDirParent, pathDirCopy);
-}
-
-
-
-fs.access(pathDirCopy, (error)=> {
-  if (error) {
-    createFolder(pathDirCopy);
-    copyFileRecursive (pathDirParent, pathDirCopy);
-  } else {
-    deleteCopyFolder(pathDirCopy);
-  }
-});
+  );
  
 
 
@@ -53,10 +48,16 @@ function copyFileRecursive (pathDir, copyDir) {
             if (error) console.error(error.message);
           });
         } else {
-          // path.join(pathDir, filePath.name);
-          // path.join(copyDir, filePath.name);
-          createFolder(path.join(copyDir, filePath.name));
-          copyFileRecursive (path.join(pathDir, filePath.name), path.join(copyDir, filePath.name));
+          fs.promises.mkdir(path.join(pathDirCopy, filePath.name), { recursive: true})
+            .then (
+              ()  => {
+                return copyFileRecursive (path.join(pathDir, filePath.name), path.join(copyDir, filePath.name));
+              },
+
+              (error) => {
+                if (error) console.error(error.message);
+              }
+            );
         }
 
       });

@@ -66,8 +66,8 @@ function createStyleFile(pathFile){
   );
 }
 
-function createIndexHtml() {
-  fs.writeFile(path.join(__dirname, './project-dist', 'index.html'), html, (err) => {
+function createIndexHtml(data) {
+  fs.writeFile(path.join(__dirname, './project-dist', 'index.html'), data, (err) => {
     if (err) console.error(err.message);
   });
 }
@@ -75,37 +75,57 @@ function createIndexHtml() {
 
 function getTemplateNames(){
   fs.readFile(
-    path.join(__dirname, 'template.html'), (error, data) => {
+    path.join(__dirname, 'template.html'), 'utf-8', (error, data) => {
       if (error) console.error(error.message);
   
       html = html + data;
-      
+
       let arr = html.match(regular);
       arr = arr.map(item => item.slice(2));
 
-      replaceTemplate(arr);
+      // replaceTemplate(arr, html);
+      arrPromise(arr, html);
     });
-
 
 }
 
 
-function replaceTemplate(arrTemplate) {
-  console.log(arrTemplate);
-
+function arrPromise(arrTemplate, dataHtml) {
+  let arrProm = [];
   arrTemplate.forEach((name) => {
-    let nameHtml = name + '.html';
-    let stringReplace = '{{' + name + '}}';
-    fs.readFile(path.join(__dirname, './components', nameHtml), 'utf8', (err, data) => {
-      if (err) console.error(err.message);
-  
-      html = html.replace(stringReplace, data);
+    let tpmPromise = new Promise((resolve) => {
+      let nameHtml = name + '.html';
 
-      createIndexHtml();
+      fs.readFile(path.join(__dirname, './components', nameHtml), 'utf8', (err, data) => {
+        if (err) console.error(err.message);
+        
+        resolve(data);
+      });
+      
     });
-  });
   
+
+    arrProm.push(tpmPromise);
+  });
+
+  Promise.all(arrProm).then(data => {
+    replaceTemplate(arrTemplate, data, dataHtml);
+  });
 }
+
+
+
+function replaceTemplate(arrTpl, arrText, dataHtml) {
+  html = dataHtml;
+
+  for (let i = 0; i < arrTpl.length; i++) {
+    let stringReplace = '{{' + arrTpl[i] + '}}';
+    html = html.replace(stringReplace, arrText[i]);
+  }
+
+  createIndexHtml(html);
+}
+
 
 
 
